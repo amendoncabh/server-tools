@@ -11,6 +11,7 @@ class MassObject(models.Model):
 
     name = fields.Char('Name', required=True, index=1)
     model_id = fields.Many2one('ir.model', 'Model', required=True,
+                               ondelete="cascade",
                                help="Model is used for Selecting Fields. "
                                     "This is editable until Sidebar menu "
                                     "is not created.")
@@ -28,6 +29,13 @@ class MassObject(models.Model):
                                       help="Sidebar button to open "
                                            "the sidebar action.")
     model_list = fields.Char('Model List')
+    group_ids = fields.Many2many(
+        comodel_name="res.groups",
+        relation="mass_group_rel",
+        column1="mass_id",
+        column2="group_id",
+        string="Groups",
+    )
 
     _sql_constraints = [
         ('name_uniq', 'unique (name)', _('Name must be unique!')),
@@ -60,6 +68,7 @@ class MassObject(models.Model):
             'type': 'ir.actions.act_window',
             'res_model': 'mass.editing.wizard',
             'src_model': src_obj,
+            'groups_id': [(4, x.id) for x in self.group_ids],
             'view_type': 'form',
             'context': "{'mass_editing_object' : %d}" % (self.id),
             'view_mode': 'form, tree',
@@ -90,6 +99,7 @@ class MassObject(models.Model):
         self.unlink_action()
         return super(MassObject, self).unlink()
 
+    @api.multi
     @api.returns('self', lambda value: value.id)
     def copy(self, default=None):
         if default is None:
